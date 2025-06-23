@@ -17,7 +17,7 @@ def track():
     transporteur = "Inconnu"
     if re.match(r"^[A-Z0-9]{8,12}$", num, re.IGNORECASE):
         transporteur = "GLS"
-    elif re.match(r"^1362961\d{7}$", num):
+    elif re.match(r"^\d{14}$", num):
         transporteur = "DPD"
     elif re.match(r"^(?!1362961)\d{13}$", num) or re.match(r"^(CB|6A)\d{11}$", num):
         transporteur = "Colissimo"
