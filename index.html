@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Suivigo - Suivi colis</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 2em; background: #f7f7f7; }
+    h1 { text-align: center; }
+    input, button { width: 100%; padding: 1em; margin: 0.5em 0; }
+    .result { background: white; padding: 1em; border-radius: 8px; margin-top: 1em; }
+    .copy-btn { background: #ddd; border: none; padding: 0.5em; cursor: pointer; margin-top: 0.5em; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Suivigo</h1>
+  <p>Entrez un numéro de suivi :</p>
+  <input type="text" id="trackingNumber" placeholder="Ex : CB379221494FR">
+  <button onclick="suivre()">Suivre le colis</button>
+
+  <div class="result" id="resultat" style="display: none;"></div>
+
+  <script>
+    function detectTransporteur(num) {
+      const patterns = {
+        "GLS": /^\d{8}$|^\d{11}$/,
+        "Colissimo": /^[A-Z0-9]{13,15}$/i,
+        "DPD": /^\d{14}$/,
+        "DHL": /^(\d{18}|\d{20}|JJD\d{24})$/,
+        "Agediss": /^\d{11}$/,
+        "FedEx": /^\d{12,15}$/
+      };
+      for (let t in patterns) {
+        if (patterns[t].test(num)) return t;
+      }
+      return "Inconnu";
+    }
+
+    function suivre() {
+      const num = document.getElementById("trackingNumber").value.trim();
+      const transporteur = detectTransporteur(num);
+      const result = document.getElementById("resultat");
+
+      if (transporteur === "Inconnu") {
+        result.innerHTML = `<p>❌ Transporteur non reconnu pour le numéro : <strong>${num}</strong></p>`;
+      } else {
+        let lien;
+        switch (transporteur) {
+          case "Colissimo":
+            lien = `https://www.laposte.fr/outils/suivre-vos-envois?code=${num}`;
+            break;
+          case "GLS":
+            lien = `https://gls-group.eu/FR/fr/suivi-colis?match=${num}`;
+            break;
+          case "DPD":
+            lien = `https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber=${num}`;
+            break;
+          case "DHL":
+            lien = `https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode=${num}`;
+            break;
+          case "Agediss":
+            lien = `https://agediss.com/fr/suivi/${num}`;
+            break;
+          case "FedEx":
+            lien = `https://www.fedex.com/fedextrack/?tracknumbers=${num}`;
+            break;
+          default:
+            lien = `#`;
+        }
+
+        result.innerHTML = `
+          <p>🚚 <strong>Transporteur détecté :</strong> ${transporteur}</p>
+          <p>🔗 <a href="${lien}" target="_blank">Voir sur le site ${transporteur}</a></p>
+          <button class="copy-btn" onclick="copyLink('${lien}')">📋 Copier le lien de suivi</button>`;
+      }
+      result.style.display = "block";
+    }
+
+    function copyLink(lien) {
+      navigator.clipboard.writeText(lien).then(() => {
+        alert("Lien copié dans le presse-papiers ✅");
+      });
+    }
+  </script>
+</body>
+</html>
