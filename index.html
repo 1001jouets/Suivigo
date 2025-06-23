@@ -28,6 +28,13 @@
       margin-bottom: 1em;
       padding-bottom: 1em;
     }
+    code {
+      display: block;
+      white-space: pre-wrap;
+      background: #f2f2f2;
+      padding: 1em;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -59,21 +66,26 @@
           if (d.error || d.message) {
             html += `<div class="colis"><p>❌ ${d.error || d.message}</p><p><strong>Numéro :</strong> ${d.tracking}</p></div>`;
           } else {
-            const msgClient = `Bonjour, nous vous remercions pour votre message. Le lien suivant (${d.lien}) indique que votre colis est "${d.statut}".`;
+            const statutManquant = !d.statut || d.statut === "Non trouvé";
+            const dateManquante = !d.date_livraison || d.date_livraison === "Indisponible";
+
+            let msgClient = "";
+
+            if (statutManquant && dateManquante) {
+              msgClient = `Bonjour, nous vous remercions pour votre message. Votre colis a bien été pris en charge par ${d.transporteur} et sera livré dans les prochains jours. Vous pouvez consulter son suivi ici : ${d.lien}`;
+            } else {
+              msgClient = `Bonjour, nous vous remercions pour votre message. Le lien suivant (${d.lien}) indique que votre colis est "${d.statut}".`;
+            }
+
             html += `<div class="colis">
               <p><strong>Transporteur :</strong> ${d.transporteur}</p>
               <p><strong>Numéro :</strong> ${d.tracking}</p>
               <p><strong>📅 Livraison prévue :</strong> ${d.date_livraison}</p>
               <p><strong>📦 Statut :</strong> ${d.statut}</p>
-              <p><strong>✉️ Message client :</strong> ${msgClient}</p>
+              <p><strong>✉️ Message client :</strong></p>
+              <code>${msgClient}</code>
               <p><a href="${d.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>
             </div>`;
-
-            if (d.statut === "Non trouvé" || d.statut === "En transit" || d.date_livraison === "Indisponible") {
-              setTimeout(() => {
-                window.open(d.lien, '_blank');
-              }, 5000);
-            }
           }
         }
 
