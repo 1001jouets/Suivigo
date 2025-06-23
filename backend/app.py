@@ -17,7 +17,7 @@ def track():
     transporteur = "Inconnu"
     if re.match(r"^[A-Z0-9]{8,12}$", num, re.IGNORECASE):
         transporteur = "GLS"
-    elif re.match(r"^\d{14}$", num):
+    elif re.match(r"^1362961\d{7}$", num):
         transporteur = "DPD"
     elif re.match(r"^(?!1362961)\d{13}$", num) or re.match(r"^(CB|6A)\d{11}$", num):
         transporteur = "Colissimo"
@@ -46,7 +46,7 @@ def track():
 
     if transporteur == "DPD":
         try:
-            dpd_url = f"https://www.dpd.com/tracking/(lang)/fr_FR?parcelNumber={num}"
+            dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
             return jsonify({"transporteur": transporteur, "tracking": num, "statut": "Non trouvé", "date_livraison": "Indisponible", "historique": [], "lien": dpd_url})
         except Exception as e:
             return jsonify({"error": "DPD tracking failed", "details": str(e)}), 500
