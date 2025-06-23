@@ -1,28 +1,48 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Suivigo – Suivi de colis</title>
+  <meta charset="UTF-8" />
+  <title>Suivigo – Suivi colis</title>
 </head>
-<body style="font-family: sans-serif; max-width: 600px; margin: auto; padding-top: 50px;">
-  <h2>🔎 Suivi de colis</h2>
-  <input type="text" id="trackingNumber" placeholder="Entrez votre numéro de suivi" style="width: 100%; padding: 10px;">
-  <button onclick="track()" style="margin-top: 10px; padding: 10px 20px;">Suivre</button>
-  <pre id="result" style="background: #f0f0f0; padding: 20px; margin-top: 20px;"></pre>
+<body>
+  <h1>🔎 Suivigo – Suivi de colis</h1>
+  <form id="form">
+    <label>Numéro de suivi :
+      <input type="text" id="trackingNumber" required />
+    </label>
+    <button type="submit">Suivre</button>
+  </form>
+
+  <div id="result"></div>
 
   <script>
-    async function track() {
-      const num = document.getElementById("trackingNumber").value.trim();
-      const result = document.getElementById("result");
-      result.textContent = "Chargement...";
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const num = document.getElementById("trackingNumber").value;
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "⏳ Recherche en cours...";
+
       try {
-        const res = await fetch(`https://suivigo-backend.onrender.com/track?num=${encodeURIComponent(num)}`);
+        const res = await fetch("https://suivigo-backend.onrender.com/track?num=" + encodeURIComponent(num));
         const data = await res.json();
-        result.textContent = JSON.stringify(data, null, 2);
+
+        if (data.error) {
+          resultDiv.innerHTML = "❌ Erreur : " + data.error;
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <p><strong>Transporteur :</strong> ${data.transporteur}</p>
+          <p><strong>Statut :</strong> ${data.statut}</p>
+          <p><strong>Date de livraison :</strong> ${data.date_livraison}</p>
+          <p><a href="${data.lien}" target="_blank">🔗 Voir sur le site du transporteur</a></p>
+          <h3>Historique :</h3>
+          <ul>${(data.historique || []).map(item => `<li>${item}</li>`).join("")}</ul>
+        `;
       } catch (err) {
-        result.textContent = "Erreur lors du suivi.";
+        resultDiv.innerHTML = "⚠️ Une erreur est survenue : " + err.message;
       }
-    }
+    });
   </script>
 </body>
 </html>
