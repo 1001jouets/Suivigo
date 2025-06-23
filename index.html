@@ -2,47 +2,50 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Suivigo – Suivi colis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suivigo – Suivi de colis</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2em; text-align: center; }
+    h1 { color: #333; }
+    input { padding: 0.5em; font-size: 1em; width: 300px; }
+    button { padding: 0.5em 1em; font-size: 1em; margin-left: 1em; }
+    .result { margin-top: 2em; background: #fff; padding: 1em; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .label { font-weight: bold; }
+    a { color: #007BFF; text-decoration: none; }
+  </style>
 </head>
 <body>
   <h1>🔎 Suivigo – Suivi de colis</h1>
-  <form id="form">
-    <label>Numéro de suivi :
-      <input type="text" id="trackingNumber" required />
-    </label>
-    <button type="submit">Suivre</button>
-  </form>
+  <input type="text" id="trackingInput" placeholder="Numéro de suivi..." />
+  <button onclick="suivre()">Suivre</button>
 
-  <div id="result"></div>
+  <div class="result" id="result"></div>
 
   <script>
-    document.getElementById("form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const num = document.getElementById("trackingNumber").value;
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "⏳ Recherche en cours...";
+    async function suivre() {
+      const num = document.getElementById('trackingInput').value.trim();
+      const result = document.getElementById('result');
+      if (!num) return result.innerHTML = '⛔ Veuillez entrer un numéro';
+
+      result.innerHTML = '⏳ Recherche en cours...';
 
       try {
-        const res = await fetch("https://suivigo-backend.onrender.com/track?num=" + encodeURIComponent(num));
-        const data = await res.json();
+        const response = await fetch(`https://suivigo.onrender.com/track?num=${num}`);
+        const data = await response.json();
 
-        if (data.error) {
-          resultDiv.innerHTML = "❌ Erreur : " + data.error;
-          return;
+        if (data.error || data.message) {
+          result.innerHTML = `⚠️ ${data.message || data.error}`;
+        } else {
+          result.innerHTML = `
+            <div><span class="label">Transporteur :</span> ${data.transporteur}</div>
+            <div><span class="label">Numéro :</span> ${data.tracking}</div>
+            <div><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></div>
+          `;
         }
-
-        resultDiv.innerHTML = `
-          <p><strong>Transporteur :</strong> ${data.transporteur}</p>
-          <p><strong>Statut :</strong> ${data.statut}</p>
-          <p><strong>Date de livraison :</strong> ${data.date_livraison}</p>
-          <p><a href="${data.lien}" target="_blank">🔗 Voir sur le site du transporteur</a></p>
-          <h3>Historique :</h3>
-          <ul>${(data.historique || []).map(item => `<li>${item}</li>`).join("")}</ul>
-        `;
       } catch (err) {
-        resultDiv.innerHTML = "⚠️ Une erreur est survenue : " + err.message;
+        result.innerHTML = '⚠️ Une erreur est survenue : ' + err;
       }
-    });
+    }
   </script>
 </body>
 </html>
