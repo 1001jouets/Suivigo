@@ -2,66 +2,56 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Suivigo – Suivi de colis</title>
+  <title>🔎 Suivigo – Suivi de colis</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 2em; background: #f5f5f5; }
-    h1 { text-align: center; }
-    textarea { width: 100%; height: 120px; font-size: 16px; margin-bottom: 1em; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    .result { background: white; margin-top: 1em; padding: 1em; border-radius: 6px; }
-    .result img { height: 20px; vertical-align: middle; margin-right: 8px; }
-    .result a { color: #007BFF; text-decoration: none; }
-    .result a:hover { text-decoration: underline; }
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      background-color: #f7f7f7;
+    }
+    input, button {
+      padding: 0.6em;
+      font-size: 1em;
+      margin-top: 1em;
+    }
+    #result {
+      margin-top: 2em;
+      background-color: white;
+      padding: 1em;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
   <h1>🔎 Suivigo – Suivi de colis</h1>
-  <p>Collez plusieurs numéros de suivi (un ou plusieurs, séparés par des espaces) :</p>
-  <textarea id="trackingNumbers" placeholder="Ex : CB379344255FR 13629612637184 00340434496830532932"></textarea>
-  <button onclick="track()">Suivre</button>
-
-  <div id="results"></div>
+  <label for="num">Numéro de suivi :</label><br>
+  <input type="text" id="num" name="num" placeholder="Ex: CB123456789FR ou JJD0000...">
+  <button onclick="suivre()">Suivre</button>
+  <div id="result"></div>
 
   <script>
-    const icons = {
-      GLS: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/GLS_logo_2021.svg/1280px-GLS_logo_2021.svg.png",
-      DPD: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/DPD_logo.svg/2560px-DPD_logo.svg.png",
-      Colissimo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/La_Poste_logo_2021.svg/2560px-La_Poste_logo_2021.svg.png",
-      DHL: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/DHL_Logo.svg/2560px-DHL_Logo.svg.png",
-      Agediss: "https://www.agediss.com/img/logo-agediss.svg",
-      FedEx: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/FedEx_Express.svg/2560px-FedEx_Express.svg.png"
-    };
-
-    async function track() {
-      const input = document.getElementById("trackingNumbers").value.trim();
-      if (!input) return alert("Merci d'entrer un ou plusieurs numéros de suivi.");
-
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "Recherche en cours...";
+    async function suivre() {
+      const num = document.getElementById("num").value.trim();
+      const result = document.getElementById("result");
+      result.innerHTML = "⏳ Recherche en cours...";
 
       try {
-        const res = await fetch(`https://suivigo.onrender.com/track?num=${encodeURIComponent(input)}`);
-        let data = await res.json();
-        if (!Array.isArray(data)) data = [data];
+        const response = await fetch(`https://suivigo.onrender.com/track?num=${encodeURIComponent(num)}`);
+        const data = await response.json();
 
-        resultsDiv.innerHTML = "";
-        data.forEach(item => {
-          const div = document.createElement("div");
-          div.className = "result";
-
-          const icon = icons[item.transporteur] || "";
-          div.innerHTML = `
-            <p><img src="${icon}" alt="" width="20"> <strong>${item.transporteur || "Inconnu"}</strong></p>
-            <p><strong>Numéro :</strong> ${item.tracking}</p>
-            ${item.lien ? `<p><a href="${item.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>` : ""}
-            ${item.statut && item.statut !== "Non trouvé" ? `<p><strong>📦 Statut :</strong> ${item.statut}</p>` : ""}
-            ${item.date_livraison && item.date_livraison !== "Indisponible" ? `<p><strong>📅 Livraison estimée :</strong> ${item.date_livraison}</p>` : ""}
-          `;
-          resultsDiv.appendChild(div);
-        });
-
+        if (data.error || data.message) {
+          result.innerHTML = `<p>⚠️ ${data.error || data.message}</p>`;
+        } else {
+          let html = `<p><strong>Transporteur :</strong> ${data.transporteur}</p>`;
+          html += `<p><strong>Numéro :</strong> ${data.tracking}</p>`;
+          html += `<p><strong>📅 Livraison prévue :</strong> ${data.date_livraison}</p>`;
+          html += `<p><strong>📦 Statut :</strong> ${data.statut}</p>`;
+          html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
+          result.innerHTML = html;
+        }
       } catch (err) {
-        resultsDiv.innerHTML = `<p style="color:red;">❌ Erreur : ${err.message}</p>`;
+        result.innerHTML = `<p>⚠️ Une erreur est survenue : ${err.message}</p>`;
       }
     }
   </script>
