@@ -19,13 +19,13 @@ def track():
         transporteur = "GLS"
     elif re.match(r"^\d{13,16}$", num):
         transporteur = "DPD"
-    elif re.match(r"^(CB|6A)\d{11}$", num):
+    elif re.match(r"^(CB|6A)\d{11}$", num) or re.match(r"^\d{13}$", num):
         transporteur = "Colissimo"
     elif re.match(r"^JJD\d{20,}$", num):
         transporteur = "DHL"
     elif re.match(r"^\d{20}$", num):
         transporteur = "DHL"
-    elif re.match(r"^\d{12}$", num):
+    elif re.match(r"^\d{12}$", num) or re.match(r"^\d{15}$", num) or re.match(r"^\d{20}$", num):
         transporteur = "FedEx"
     elif re.match(r"^\d{17}$", num):
         transporteur = "Agediss"
