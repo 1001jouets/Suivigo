@@ -1,33 +1,34 @@
-# backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
+import re
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/track", methods=["GET"])
+@app.route("/track")
 def track():
-    num = request.args.get("num", "")
+    num = request.args.get("num", "").strip()
     if not num:
-        return jsonify({"error": "missing tracking number"}), 400
+        return jsonify({"error": "Numéro manquant"}), 400
 
-    # Detect transporteur
-    if num.startswith("CB") and num.endswith("FR"):
-        transporteur = "Colissimo"
-    elif len(num) == 11 and num.isdigit():
+    # Détection du transporteur
+    transporteur = "Inconnu"
+    if re.match(r"^\d{11}$", num):
         transporteur = "GLS"
-    elif len(num) == 14 and num.isdigit():
+    elif re.match(r"^\d{14}$", num):
         transporteur = "DPD"
-    elif num.startswith("JJD") or len(num) in [18, 20]:
+    elif re.match(r"^(CB|6A)\d{11}$", num):
+        transporteur = "Colissimo"
+    elif re.match(r"^JJD\d{20,}$", num):
         transporteur = "DHL"
-    elif len(num) in range(12, 16) and num.isdigit():
+    elif re.match(r"^\d{20}$", num):
+        transporteur = "DHL"
+    elif re.match(r"^\d{12}$", num):
         transporteur = "FedEx"
-    elif len(num) == 11 and num.startswith("3"):
+    elif re.match(r"^\d{17}$", num):
         transporteur = "Agediss"
-    else:
-        transporteur = "Inconnu"
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
@@ -36,60 +37,38 @@ def track():
             gls_url = f"https://gls-group.eu/FR/fr/suivi-colis?match={num}"
             r = requests.get(gls_url, headers=headers)
             soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".status-detail .step-current .title")
-            date = soup.select_one(".status-detail .step-current .date")
-            historique = [el.text.strip() for el in soup.select(".step-completed .title")]
+            statut = soup.select_one(".status")
+            date = soup.select_one(".estimated")
+            historique = [el.text.strip() for el in soup.select(".history")]
             return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut.text.strip() if statut else "Non trouvé", "date_livraison": date.text.strip() if date else "Indisponible", "historique": historique, "lien": gls_url})
         except Exception as e:
             return jsonify({"error": "GLS tracking failed", "details": str(e)}), 500
 
     if transporteur == "DPD":
         try:
-            dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": "Consulter le lien de suivi",
-                "date_livraison": "Indisponible",
-                "historique": [],
-                "lien": dpd_url
-            })
+            dpd_url = f"https://www.dpd.com/tracking/(lang)/fr_FR?parcelNumber={num}"
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": "Non trouvé", "date_livraison": "Indisponible", "historique": [], "lien": dpd_url})
         except Exception as e:
             return jsonify({"error": "DPD tracking failed", "details": str(e)}), 500
 
     if transporteur == "Colissimo":
         try:
             colissimo_url = f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}"
-            r = requests.get(colissimo_url, headers=headers)
-            soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".status .title")
-            date = soup.select_one(".status .date")
-            historique = [el.text.strip() for el in soup.select(".history .event .description")]
-            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut.text.strip() if statut else "Non trouvé", "date_livraison": date.text.strip() if date else "Indisponible", "historique": historique, "lien": colissimo_url})
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": "Non trouvé", "date_livraison": "Indisponible", "historique": [], "lien": colissimo_url})
         except Exception as e:
             return jsonify({"error": "Colissimo tracking failed", "details": str(e)}), 500
 
     if transporteur == "DHL":
         try:
             dhl_url = f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}"
-            r = requests.get(dhl_url, headers=headers)
-            soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".shipment-status")
-            date = soup.select_one(".shipment-date")
-            historique = [el.text.strip() for el in soup.select(".shipment-status-detail")]
-            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut.text.strip() if statut else "Non trouvé", "date_livraison": date.text.strip() if date else "Indisponible", "historique": historique, "lien": dhl_url})
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": "Non trouvé", "date_livraison": "Indisponible", "historique": [], "lien": dhl_url})
         except Exception as e:
             return jsonify({"error": "DHL tracking failed", "details": str(e)}), 500
 
     if transporteur == "Agediss":
         try:
-            agediss_url = f"https://agediss.com/fr/suivi/{num}"
-            r = requests.get(agediss_url, headers=headers)
-            soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".suivi_statut")
-            date = soup.select_one(".suivi_date")
-            historique = [el.text.strip() for el in soup.select(".suivi_historique .suivi_etape")]
-            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut.text.strip() if statut else "Non trouvé", "date_livraison": date.text.strip() if date else "Indisponible", "historique": historique, "lien": agediss_url})
+            agediss_url = f"https://www.agediss.com/fr/suivi/{num}"
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": "Non trouvé", "date_livraison": "Indisponible", "historique": [], "lien": agediss_url})
         except Exception as e:
             return jsonify({"error": "Agediss tracking failed", "details": str(e)}), 500
 
