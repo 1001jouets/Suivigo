@@ -9,12 +9,10 @@
       padding: 2em;
       background-color: #f7f7f7;
     }
-    textarea, button {
+    input, button {
       padding: 0.6em;
       font-size: 1em;
       margin-top: 1em;
-      width: 100%;
-      max-width: 600px;
     }
     #result {
       margin-top: 2em;
@@ -23,76 +21,58 @@
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .colis {
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 1em;
-      padding-bottom: 1em;
-    }
-    code {
-      display: block;
-      white-space: pre-wrap;
-      background: #f2f2f2;
+    .message-box {
+      margin-top: 1em;
+      background-color: #eef;
       padding: 1em;
       border-radius: 5px;
+    }
+    .copy-btn {
+      margin-top: 0.5em;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
   <h1>🔎 Suivigo – Suivi de colis</h1>
-  <label for="num">Collez un ou plusieurs numéros de suivi :</label><br>
-  <textarea id="num" rows="4" placeholder="Ex : CB123456789FR JJD..."></textarea><br>
+  <label for="num">Numéro de suivi :</label><br>
+  <input type="text" id="num" name="num" placeholder="Ex: CB123456789FR ou JJD0000...">
   <button onclick="suivre()">Suivre</button>
   <div id="result"></div>
 
   <script>
     async function suivre() {
-      const input = document.getElementById("num").value.trim();
+      const num = document.getElementById("num").value.trim();
       const result = document.getElementById("result");
-      if (!input) {
-        result.innerHTML = "<p>⚠️ Veuillez entrer un numéro.</p>";
-        return;
-      }
-
       result.innerHTML = "⏳ Recherche en cours...";
 
       try {
-        const response = await fetch(`https://suivigo.onrender.com/track?num=${encodeURIComponent(input)}`);
-        let data = await response.json();
-        if (!Array.isArray(data)) data = [data];
+        const response = await fetch(`https://suivigo.onrender.com/track?num=${encodeURIComponent(num)}`);
+        const data = await response.json();
 
-        let html = "";
-
-        for (const d of data) {
-          if (d.error || d.message) {
-            html += `<div class="colis"><p>❌ ${d.error || d.message}</p><p><strong>Numéro :</strong> ${d.tracking}</p></div>`;
-          } else {
-            const statutManquant = !d.statut || d.statut === "Non trouvé";
-            const dateManquante = !d.date_livraison || d.date_livraison === "Indisponible";
-
-            let msgClient = "";
-
-            if (statutManquant && dateManquante) {
-              msgClient = `Bonjour, nous vous remercions pour votre message. Votre colis a bien été pris en charge par ${d.transporteur} et sera livré dans les prochains jours. Vous pouvez consulter son suivi ici : ${d.lien}`;
-            } else {
-              msgClient = `Bonjour, nous vous remercions pour votre message. Le lien suivant (${d.lien}) indique que votre colis est "${d.statut}".`;
-            }
-
-            html += `<div class="colis">
-              <p><strong>Transporteur :</strong> ${d.transporteur}</p>
-              <p><strong>Numéro :</strong> ${d.tracking}</p>
-              <p><strong>📅 Livraison prévue :</strong> ${d.date_livraison}</p>
-              <p><strong>📦 Statut :</strong> ${d.statut}</p>
-              <p><strong>✉️ Message client :</strong></p>
-              <code>${msgClient}</code>
-              <p><a href="${d.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>
-            </div>`;
+        if (data.error || data.message) {
+          let html = `<p><strong>Transporteur :</strong> ${data.transporteur || 'Inconnu'}</p>`;
+          html += `<p><strong>Numéro :</strong> ${data.tracking || num}</p>`;
+          html += `<p><strong>📦 Statut :</strong> ${data.statut || 'Non disponible'}</p>`;
+          html += `<p><strong>📅 Livraison prévue :</strong> ${data.date_livraison || 'Indisponible'}</p>`;
+          html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
+          if (data.message) {
+            html += `<div class="message-box">✉️ ${data.message}</div>`;
+            html += `<button class="copy-btn" onclick="copierMessage(\`${data.message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
           }
+          result.innerHTML = html;
+        } else {
+          result.innerHTML = `<p>⚠️ Données insuffisantes pour ce numéro.</p>`;
         }
-
-        result.innerHTML = html;
       } catch (err) {
         result.innerHTML = `<p>⚠️ Une erreur est survenue : ${err.message}</p>`;
       }
+    }
+
+    function copierMessage(msg) {
+      navigator.clipboard.writeText(msg)
+        .then(() => alert("Message copié !"))
+        .catch(() => alert("Échec de la copie"));
     }
   </script>
 </body>
