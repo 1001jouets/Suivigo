@@ -36,6 +36,17 @@
         if (data.error || data.message) {
           result.innerHTML = `⚠️ ${data.message || data.error}`;
         } else {
+          // Si les données sont trop faibles, redirige automatiquement
+          const infoFaible = (
+            !data.statut || data.statut === "Non trouvé" ||
+            (!data.historique || data.historique.length === 0)
+          );
+
+          if (infoFaible && data.lien) {
+            window.location.href = data.lien;
+            return;
+          }
+
           result.innerHTML = `
             <div><span class="label">Transporteur :</span> ${data.transporteur}</div>
             <div><span class="label">Numéro :</span> ${data.tracking}</div>
