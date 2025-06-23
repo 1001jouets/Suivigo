@@ -44,12 +44,14 @@ def track():
     if transporteur == "DPD":
         try:
             dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
-            r = requests.get(dpd_url, headers=headers)
-            soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".tracking-parcel__step-active .tracking-parcel__step-title")
-            date = soup.select_one(".tracking-parcel__step-active .tracking-parcel__step-date")
-            historique = [el.text.strip() for el in soup.select(".tracking-parcel__step")]
-            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut.text.strip() if statut else "Non trouvé", "date_livraison": date.text.strip() if date else "Indisponible", "historique": historique, "lien": dpd_url})
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": "Consulter le lien de suivi",
+                "date_livraison": "Indisponible",
+                "historique": [],
+                "lien": dpd_url
+            })
         except Exception as e:
             return jsonify({"error": "DPD tracking failed", "details": str(e)}), 500
 
