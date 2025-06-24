@@ -48,7 +48,7 @@ def track():
         transporteur = "GLS"
     elif len(num) in [15, 20] and num.isdigit():
         transporteur = "FedEx"
-    elif re.match(r"^[A-Z0-9]{8,}$", num):
+    elif re.match(r"^[A-Z0-9]{8,}$", num) and not num.startswith("JJD"):
         transporteur = "GLS"
 
     headers = {"User-Agent": "Mozilla/5.0"}
