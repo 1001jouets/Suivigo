@@ -26,9 +26,9 @@ def track():
     transporteur = "Inconnu"
 
     # Détection du transporteur
-    if re.match(r"^(CB|6A)\d{11}FR$", num):
+    if re.match(r"^CB\d{9}FR$,", num) or re.match(r"^6A\d{11}$", num):
         transporteur = "Colissimo"
-    elif re.match(r"^JJD\d{20,24}$", num):  # env. 24-28 caractères
+    elif re.match(r"^JJD\d{20,24}$", num):
         transporteur = "DHL"
     elif re.match(r"^[A-Z]{2}\d{9}[A-Z]{2}$", num):
         transporteur = "Chronopost"
