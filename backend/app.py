@@ -45,7 +45,7 @@ def track():
     try:
         # GLS
         if transporteur == "GLS":
-            gls_url = f"https://moncolis.gls-france.com/fr/{num}?utm_source=group"
+            gls_url = f"https://gls-group.eu/GROUP/en/parcel-tracking?match={num}"
             message_client = (
                 f"Votre colis est pris en charge par {transporteur} et sera livré dans les prochains jours. "
                 f"Vous pouvez consulter le suivi ici : {gls_url}"
