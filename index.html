@@ -21,12 +21,15 @@
       border-radius: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    #copier {
+    .message-box {
       margin-top: 1em;
+      background-color: #eef;
+      padding: 1em;
+      border-radius: 5px;
     }
-    textarea {
-      width: 100%;
-      height: 100px;
+    .copy-btn {
+      margin-top: 0.5em;
+      display: inline-block;
     }
   </style>
 </head>
@@ -47,37 +50,36 @@
         const response = await fetch(`https://suivigo.onrender.com/track?num=${encodeURIComponent(num)}`);
         const data = await response.json();
 
-        if (data.error || data.message) {
-          result.innerHTML = `<p>⚠️ ${data.error || data.message}</p>`;
-        } else {
-          let html = `<p><strong>Transporteur :</strong> ${data.transporteur}</p>`;
-          html += `<p><strong>Numéro :</strong> ${data.tracking}</p>`;
-          html += `<p><strong>📅 Livraison prévue :</strong> ${data.date_livraison}</p>`;
-          html += `<p><strong>📦 Statut :</strong> ${data.statut}</p>`;
+        let html = `<p><strong>Transporteur :</strong> ${data.transporteur || 'Inconnu'}</p>`;
+        html += `<p><strong>Numéro :</strong> ${data.tracking || num}</p>`;
+
+        if (!data.statut && !data.date_livraison && (!data.historique || data.historique.length === 0)) {
+          html += `<p><strong>⚠️ Données insuffisantes pour ce numéro.</strong></p>`;
           html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
 
-          let messageClient;
-          if (data.statut.toLowerCase().includes("livré")) {
-            messageClient = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${data.lien}) indique que votre colis a bien été livré.\n\nNous restons à votre écoute.`;
-          } else {
-            messageClient = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${data.lien}) indique que votre colis est pris en charge par ${data.transporteur}. Nous vous invitons à le contacter via votre lien de suivi afin de convenir d’un rendez-vous pour la livraison selon vos disponibilités.\n\nNous restons à votre écoute.`;
-          }
+          const message = `Bonjour, nous vous remercions pour votre message. Votre colis est pris en charge par ${data.transporteur || 'le transporteur'} et sera livré dans les prochains jours. Vous pouvez consulter le suivi ici : ${data.lien}.\n\nNous restons à votre écoute.`;
+          html += `<div class="message-box">✉️ ${message.replaceAll('\n', '<br>')}</div>`;
+          html += `<button class="copy-btn" onclick="copierMessage(\`${message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
+        } else {
+          html += `<p><strong>📅 Livraison prévue :</strong> ${data.date_livraison || 'Indisponible'}</p>`;
+          html += `<p><strong>📦 Statut :</strong> ${data.statut || 'Non disponible'}</p>`;
+          html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
 
-          html += `<p><strong>✉️ Message client :</strong></p>`;
-          html += `<textarea readonly>${messageClient}</textarea>`;
-          html += `<button id="copier" onclick="copyText()">📋 Copier</button>`;
-
-          result.innerHTML = html;
+          const message = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${data.lien}) indique que votre colis est ${data.statut?.toLowerCase() || 'en cours de traitement'}.\n\nNous restons à votre écoute.`;
+          html += `<div class="message-box">✉️ ${message.replaceAll('\n', '<br>')}</div>`;
+          html += `<button class="copy-btn" onclick="copierMessage(\`${message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
         }
+
+        result.innerHTML = html;
       } catch (err) {
         result.innerHTML = `<p>⚠️ Une erreur est survenue : ${err.message}</p>`;
       }
     }
 
-    function copyText() {
-      const textarea = document.querySelector("textarea");
-      textarea.select();
-      document.execCommand("copy");
+    function copierMessage(msg) {
+      navigator.clipboard.writeText(msg)
+        .then(() => alert("Message copié !"))
+        .catch(() => alert("Échec de la copie"));
     }
   </script>
 </body>
