@@ -24,23 +24,22 @@ def track():
     num = num.upper()
     transporteur = "Inconnu"
 
-    # Détection du transporteur (corrigée pour Colissimo, Chronopost, DHL, etc.)
-   # Détection du transporteur
-if re.match(r"^CB\d{9}FR$", num) or re.match(r"^6A\d{11}$", num):
-    transporteur = "Colissimo"
-elif re.match(r"^JJD\d{20,24}$", num):
-    transporteur = "DHL"
-elif re.match(r"^[A-Z]{2}\d{9}[A-Z]{2}$", num):
-    transporteur = "Chronopost"
-elif re.match(r"^(?:100|0|01|015|053|019|134)\d{11,12}$", num):  # <-- ICI ! 
-    transporteur = "DPD"
-elif re.match(r"^318\d{6}$", num):
-    transporteur = "Agediss"
-elif re.match(r"^(?:\d{12}|\d{15}|\d{20})$", num):
-    transporteur = "FedEx"
-elif re.match(r"^\d{11}$", num):
-    transporteur = "GLS"
-    
+    # Détection du transporteur
+    if re.match(r"^CB\d{9}FR$", num) or re.match(r"^6A\d{11}$", num):
+        transporteur = "Colissimo"
+    elif re.match(r"^JJD\d{20,24}$", num):
+        transporteur = "DHL"
+    elif re.match(r"^[A-Z]{2}\d{9}[A-Z]{2}$", num):
+        transporteur = "Chronopost"
+    elif re.match(r"^(?:100|0|01|015|053|019|134)\d{11,12}$", num):
+        transporteur = "DPD"
+    elif re.match(r"^318\d{6}$", num):
+        transporteur = "Agediss"
+    elif re.match(r"^(?:\d{12}|\d{15}|\d{20})$", num):
+        transporteur = "FedEx"
+    elif re.match(r"^\d{11}$", num):
+        transporteur = "GLS"
+
     headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
