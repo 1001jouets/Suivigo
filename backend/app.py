@@ -7,6 +7,7 @@ import re
 app = Flask(__name__)
 CORS(app)
 
+# Mots-clés pour détecter le statut Livré
 STATUT_LIVRE_MOTS_CLES = [
     "livré", "remis", "votre colis est livré", "delivered", "delivré", "livree"
 ]
@@ -25,28 +26,25 @@ def track():
     transporteur = "Inconnu"
 
     # Détection du transporteur
-    if num.startswith("CB") and num.endswith("FR") and len(num) == 13:
+    if re.match(r"^(CB|6A)\d{11}FR$", num):
         transporteur = "Colissimo"
-    elif num.startswith("6A") and len(num) == 13:
-        transporteur = "Colissimo"
-    elif num.startswith("JJD"):
+    elif re.match(r"^JJD\d{20,24}$", num):  # env. 24-28 caractères
         transporteur = "DHL"
-    elif re.match(r"^X[A-Z0-9]{13}$", num):
+    elif re.match(r"^[A-Z]{2}\d{9}[A-Z]{2}$", num):
         transporteur = "Chronopost"
-    elif re.match(r"^100\d{11}$", num) or re.match(r"^0\d{13}$", num) or re.match(r"^053\d{11}$", num) or re.match(r"^019\d{11}$", num) or re.match(r"^134\d{11}$", num):
+    elif re.match(r"^(?:100|0|053|019|134)\d{11}$", num):
         transporteur = "DPD"
     elif re.match(r"^318\d{6}$", num):
         transporteur = "Agediss"
-    elif re.match(r"^\d{11}$", num):
-        transporteur = "GLS"
-    elif len(num) in [15, 20] and num.isdigit():
+    elif re.match(r"^(?:\d{12}|\d{15}|\d{20})$", num):
         transporteur = "FedEx"
-    elif re.match(r"^[A-Z0-9]{8,}$", num) and not num.startswith("JJD"):
+    elif re.match(r"^\d{11}$", num):
         transporteur = "GLS"
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
+        # GLS
         if transporteur == "GLS":
             gls_url = f"https://gls-group.eu/EU/en/parcel-tracking?match={num}"
             r = requests.get(gls_url, headers=headers)
@@ -55,118 +53,61 @@ def track():
             historique = [el.text.strip() for el in soup.select(".history")]
             if not statut and contient_livraison(r.text):
                 statut = "Livré"
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "Livré" if contient_livraison(r.text) else "",
-                "date_livraison": "",
-                "historique": historique,
-                "lien": gls_url
-            })
+            text_statut = statut.text.strip() if getattr(statut, 'text', None) else (statut or ("Livré" if contient_livraison(r.text) else ""))
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": text_statut, "date_livraison": "", "historique": historique, "lien": gls_url})
 
+        # Colissimo
         if transporteur == "Colissimo":
-            colissimo_url = f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}"
-            r = requests.get(colissimo_url, headers=headers)
+            url = f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}"
+            r = requests.get(url, headers=headers)
             statut = "Livré" if contient_livraison(r.text) else ""
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut,
-                "date_livraison": "",
-                "historique": [],
-                "lien": colissimo_url
-            })
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut, "date_livraison": "", "historique": [], "lien": url})
 
+        # DHL
         if transporteur == "DHL":
-            dhl_url = f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}"
-            r = requests.get(dhl_url, headers=headers)
+            url = f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}"
+            r = requests.get(url, headers=headers)
             statut = "Livré" if contient_livraison(r.text) else ""
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut,
-                "date_livraison": "",
-                "historique": [],
-                "lien": dhl_url
-            })
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut, "date_livraison": "", "historique": [], "lien": url})
 
+        # DPD
         if transporteur == "DPD":
-            dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
-            r = requests.get(dpd_url, headers=headers)
+            url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
+            r = requests.get(url, headers=headers)
             statut = "Livré" if contient_livraison(r.text) else ""
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut,
-                "date_livraison": "",
-                "historique": [],
-                "lien": dpd_url
-            })
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut, "date_livraison": "", "historique": [], "lien": url})
 
+        # FedEx
         if transporteur == "FedEx":
-            fedex_url = f"https://www.fedex.com/fedextrack/?tracknumbers={num}"
-            r = requests.get(fedex_url, headers=headers)
+            url = f"https://www.fedex.com/fedextrack/?tracknumbers={num}"
+            r = requests.get(url, headers=headers)
             soup = BeautifulSoup(r.text, "html.parser")
-            statut = soup.select_one(".statusChevron")
+            statut_el = soup.select_one(".statusChevron")
             historique = [el.text.strip() for el in soup.select(".statusBar")]
-            if not statut and contient_livraison(r.text):
-                statut = "Livré"
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "Livré" if contient_livraison(r.text) else "",
-                "date_livraison": "",
-                "historique": historique,
-                "lien": fedex_url
-            })
+            if not statut_el and contient_livraison(r.text): statut_el = "Livré"
+            text_statut = statut_el.text.strip() if getattr(statut_el, 'text', None) else (statut_el or ("Livré" if contient_livraison(r.text) else ""))
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": text_statut, "date_livraison": "", "historique": historique, "lien": url})
 
+        # Chronopost
         if transporteur == "Chronopost":
-            chrono_url = f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}"
-            r = requests.get(chrono_url, headers=headers)
+            url = f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}"
+            r = requests.get(url, headers=headers)
             statut = "Livré" if contient_livraison(r.text) else ""
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut,
-                "date_livraison": "",
-                "historique": [],
-                "lien": chrono_url
-            })
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut, "date_livraison": "", "historique": [], "lien": url})
 
+        # Agediss
         if transporteur == "Agediss":
-            agediss_url = f"https://www.agediss.com/fr/suivi/{num}"
-            r = requests.get(agediss_url, headers=headers)
+            url = f"https://www.agediss.com/fr/suivi/{num}"
+            r = requests.get(url, headers=headers)
             statut = "Livré" if contient_livraison(r.text) else ""
-            return jsonify({
-                "transporteur": transporteur,
-                "tracking": num,
-                "statut": statut,
-                "date_livraison": "",
-                "historique": [],
-                "lien": agediss_url
-            })
+            return jsonify({"transporteur": transporteur, "tracking": num, "statut": statut, "date_livraison": "", "historique": [], "lien": url})
 
     except Exception as e:
         return jsonify({"error": f"Erreur {transporteur}: {str(e)}"}), 500
 
-    lien_defaut = {
-        "Colissimo": f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}",
-        "DHL": f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}",
-        "DPD": f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}",
-        "GLS": f"https://gls-group.eu/EU/en/parcel-tracking?match={num}",
-        "FedEx": f"https://www.fedex.com/fedextrack/?tracknumbers={num}",
-        "Chronopost": f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}",
-        "Agediss": f"https://www.agediss.com/fr/suivi/{num}"
-    }.get(transporteur, f"https://www.google.com/search?q=suivi+colis+{num}")
-
-    return jsonify({
-        "transporteur": transporteur,
-        "tracking": num,
-        "statut": "",
-        "date_livraison": "",
-        "historique": [],
-        "lien": lien_defaut
-    })
+    # Fallback
+    url_fallback = f"https://www.google.com/search?q=suivi+colis+{num}"
+    return jsonify({"transporteur": transporteur, "tracking": num, "statut": "", "date_livraison": "", "historique": [], "lien": url_fallback})
 
 if __name__ == "__main__":
     import os
