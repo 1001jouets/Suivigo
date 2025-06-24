@@ -51,8 +51,91 @@ def track():
                 "historique": historique,
                 "lien": gls_url
             })
+
+        if transporteur == "Colissimo":
+            colissimo_url = f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}"
+            r = requests.get(colissimo_url, headers=headers)
+            if "livré" in r.text.lower():
+                statut = "Livré"
+            else:
+                statut = "Non trouvé"
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut,
+                "date_livraison": "Indisponible",
+                "historique": [],
+                "lien": colissimo_url
+            })
+
+        if transporteur == "DHL":
+            dhl_url = f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}"
+            r = requests.get(dhl_url, headers=headers)
+            if "livré" in r.text.lower():
+                statut = "Livré"
+            else:
+                statut = "Non trouvé"
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut,
+                "date_livraison": "Indisponible",
+                "historique": [],
+                "lien": dhl_url
+            })
+
+        if transporteur == "DPD":
+            dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
+            r = requests.get(dpd_url, headers=headers)
+            if "livré" in r.text.lower():
+                statut = "Livré"
+            else:
+                statut = "Non trouvé"
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut,
+                "date_livraison": "Indisponible",
+                "historique": [],
+                "lien": dpd_url
+            })
+
+        if transporteur == "FedEx":
+            fedex_url = f"https://www.fedex.com/fedextrack/?tracknumbers={num}"
+            r = requests.get(fedex_url, headers=headers)
+            soup = BeautifulSoup(r.text, "html.parser")
+            statut = soup.select_one(".statusChevron")
+            date = soup.select_one(".estimatedDeliveryDate")
+            historique = [el.text.strip() for el in soup.select(".statusBar")]
+            if not statut and "delivered" in r.text.lower():
+                statut = "Livré"
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "Non trouvé",
+                "date_livraison": date.text.strip() if date else "Indisponible",
+                "historique": historique,
+                "lien": fedex_url
+            })
+
+        if transporteur == "Chronopost":
+            chrono_url = f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}"
+            r = requests.get(chrono_url, headers=headers)
+            if "livré" in r.text.lower():
+                statut = "Livré"
+            else:
+                statut = "Non trouvé"
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut,
+                "date_livraison": "Indisponible",
+                "historique": [],
+                "lien": chrono_url
+            })
+
     except Exception as e:
-        return jsonify({"error": f"Erreur GLS: {str(e)}"}), 500
+        return jsonify({"error": f"Erreur {transporteur}: {str(e)}"}), 500
 
     lien_defaut = {
         "Colissimo": f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}",
