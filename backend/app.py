@@ -24,23 +24,16 @@ def track():
     num = num.upper()
     transporteur = "Inconnu"
 
+    # Détection du transporteur
     if num.startswith("CB") and num.endswith("FR") and len(num) == 13:
         transporteur = "Colissimo"
     elif num.startswith("6A") and len(num) == 13:
         transporteur = "Colissimo"
-    elif num.startswith("JJD") and len(num) in [24, 25]:
+    elif num.startswith("JJD"):
         transporteur = "DHL"
     elif re.match(r"^X[A-Z0-9]{13}$", num):
         transporteur = "Chronopost"
-    elif re.match(r"^100\d{11}$", num):
-        transporteur = "DPD"
-    elif re.match(r"^0\d{13}$", num):
-        transporteur = "DPD"
-    elif re.match(r"^053\d{11}$", num):
-        transporteur = "DPD"
-    elif re.match(r"^019\d{11}$", num):
-        transporteur = "DPD"
-    elif re.match(r"^134\d{11}$", num):
+    elif re.match(r"^100\d{11}$", num) or re.match(r"^0\d{13}$", num) or re.match(r"^053\d{11}$", num) or re.match(r"^019\d{11}$", num) or re.match(r"^134\d{11}$", num):
         transporteur = "DPD"
     elif re.match(r"^318\d{6}$", num):
         transporteur = "Agediss"
