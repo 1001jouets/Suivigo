@@ -7,6 +7,14 @@ import re
 app = Flask(__name__)
 CORS(app)
 
+STATUT_LIVRE_MOTS_CLES = [
+    "livré", "remis", "votre colis est livré", "delivered", "delivré", "livree"
+]
+
+def contient_livraison(text):
+    text = text.lower()
+    return any(mot in text for mot in STATUT_LIVRE_MOTS_CLES)
+
 @app.route("/track")
 def track():
     num = request.args.get("num", "").strip()
@@ -41,7 +49,7 @@ def track():
             statut = soup.select_one(".status")
             date = soup.select_one(".estimated")
             historique = [el.text.strip() for el in soup.select(".history")]
-            if not statut and "livré" in r.text.lower():
+            if not statut and contient_livraison(r.text):
                 statut = "Livré"
             return jsonify({
                 "transporteur": transporteur,
@@ -55,10 +63,7 @@ def track():
         if transporteur == "Colissimo":
             colissimo_url = f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}"
             r = requests.get(colissimo_url, headers=headers)
-            if "livré" in r.text.lower():
-                statut = "Livré"
-            else:
-                statut = "Non trouvé"
+            statut = "Livré" if contient_livraison(r.text) else "Non trouvé"
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
@@ -71,10 +76,7 @@ def track():
         if transporteur == "DHL":
             dhl_url = f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}"
             r = requests.get(dhl_url, headers=headers)
-            if "livré" in r.text.lower():
-                statut = "Livré"
-            else:
-                statut = "Non trouvé"
+            statut = "Livré" if contient_livraison(r.text) else "Non trouvé"
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
@@ -87,10 +89,7 @@ def track():
         if transporteur == "DPD":
             dpd_url = f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}"
             r = requests.get(dpd_url, headers=headers)
-            if "livré" in r.text.lower():
-                statut = "Livré"
-            else:
-                statut = "Non trouvé"
+            statut = "Livré" if contient_livraison(r.text) else "Non trouvé"
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
@@ -107,7 +106,7 @@ def track():
             statut = soup.select_one(".statusChevron")
             date = soup.select_one(".estimatedDeliveryDate")
             historique = [el.text.strip() for el in soup.select(".statusBar")]
-            if not statut and "delivered" in r.text.lower():
+            if not statut and contient_livraison(r.text):
                 statut = "Livré"
             return jsonify({
                 "transporteur": transporteur,
@@ -121,10 +120,7 @@ def track():
         if transporteur == "Chronopost":
             chrono_url = f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}"
             r = requests.get(chrono_url, headers=headers)
-            if "livré" in r.text.lower():
-                statut = "Livré"
-            else:
-                statut = "Non trouvé"
+            statut = "Livré" if contient_livraison(r.text) else "Non trouvé"
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
