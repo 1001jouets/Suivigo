@@ -53,22 +53,22 @@
         let html = `<p><strong>Transporteur :</strong> ${data.transporteur || 'Inconnu'}</p>`;
         html += `<p><strong>Numéro :</strong> ${data.tracking || num}</p>`;
 
-        const statut = data.statut?.toLowerCase() || 'pris en charge';
-        const lien = data.lien || '#';
+        if (!data.statut && !data.date_livraison && (!data.historique || data.historique.length === 0)) {
+          html += `<p><strong>⚠️ Données insuffisantes pour ce numéro.</strong></p>`;
+          html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
 
-        html += `<p><strong>🗅 Livraison prévue :</strong> ${data.date_livraison || 'Indisponible'}</p>`;
-        html += `<p><strong>📦 Statut :</strong> ${data.statut || 'Non disponible'}</p>`;
-        html += `<p><a href="${lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
-
-        let message = '';
-        if (!data.statut || data.statut === 'Non trouvé') {
-          message = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${lien}) indique que votre colis est pris en charge par ${data.transporteur || 'le transporteur'}. Nous vous invitons à le contacter via votre lien de suivi afin de convenir d’un rendez-vous pour la livraison selon vos disponibilités.\n\nNous restons à votre écoute.`;
+          const message = `Bonjour, nous vous remercions pour votre message. Votre colis est pris en charge par ${data.transporteur || 'le transporteur'} et sera livré dans les prochains jours. Vous pouvez consulter le suivi ici : ${data.lien}.\n\nNous restons à votre écoute.`;
+          html += `<div class="message-box">✉️ ${message.replaceAll('\n', '<br>')}</div>`;
+          html += `<button class="copy-btn" onclick="copierMessage(\`${message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
         } else {
-          message = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${lien}) indique que votre colis est ${statut}.\n\nNous restons à votre écoute.`;
-        }
+          html += `<p><strong>📅 Livraison prévue :</strong> ${data.date_livraison || 'Indisponible'}</p>`;
+          html += `<p><strong>📦 Statut :</strong> ${data.statut || 'Non disponible'}</p>`;
+          html += `<p><a href="${data.lien}" target="_blank">🔗 Voir le suivi sur le site du transporteur</a></p>`;
 
-        html += `<div class="message-box">✉️ ${message.replaceAll('\n', '<br>')}</div>`;
-        html += `<button class="copy-btn" onclick="copierMessage(\`${message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
+          const message = `Bonjour, nous vous remercions pour votre message. Le lien de suivi (${data.lien}) indique que votre colis est ${data.statut?.toLowerCase() || 'en cours de traitement'}.\n\nNous restons à votre écoute.`;
+          html += `<div class="message-box">✉️ ${message.replaceAll('\n', '<br>')}</div>`;
+          html += `<button class="copy-btn" onclick="copierMessage(\`${message.replace(/[`\\]/g, '\\$&')}\`)">📋 Copier le message au client</button>`;
+        }
 
         result.innerHTML = html;
       } catch (err) {
