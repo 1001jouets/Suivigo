@@ -32,9 +32,17 @@ def track():
         transporteur = "DHL"
     elif re.match(r"^X[A-Z0-9]{13}$", num):
         transporteur = "Chronopost"
-    elif re.match(r"^\d{14}$", num):
+    elif re.match(r"^100\d{11}$", num):
         transporteur = "DPD"
-    elif re.match(r"^\d{17}$", num):
+    elif re.match(r"^0\d{13}$", num):
+        transporteur = "DPD"
+    elif re.match(r"^053\d{11}$", num):
+        transporteur = "DPD"
+    elif re.match(r"^019\d{11}$", num):
+        transporteur = "DPD"
+    elif re.match(r"^134\d{11}$", num):
+        transporteur = "DPD"
+    elif re.match(r"^318\d{6}$", num):
         transporteur = "Agediss"
     elif re.match(r"^\d{11}$", num):
         transporteur = "GLS"
@@ -47,7 +55,7 @@ def track():
 
     try:
         if transporteur == "GLS":
-            gls_url = f"https://gls-group.eu/BE/fr/suivi-colis?match={num}"
+            gls_url = f"https://gls-group.eu/EU/en/parcel-tracking?match={num}"
             r = requests.get(gls_url, headers=headers)
             soup = BeautifulSoup(r.text, "html.parser")
             statut = soup.select_one(".status")
@@ -152,7 +160,7 @@ def track():
         "Colissimo": f"https://www.laposte.fr/outils/suivre-vos-envois?code={num}",
         "DHL": f"https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={num}",
         "DPD": f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}",
-        "GLS": f"http://gls-group.com/FR/fr/suivi-colis/?match={num}",
+        "GLS": f"https://gls-group.eu/EU/en/parcel-tracking?match={num}",
         "FedEx": f"https://www.fedex.com/fedextrack/?tracknumbers={num}",
         "Chronopost": f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}",
         "Agediss": f"https://www.agediss.com/fr/suivi/{num}"
