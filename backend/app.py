@@ -26,12 +26,16 @@ def track():
 
     if num.startswith("CB") and num.endswith("FR") and len(num) == 13:
         transporteur = "Colissimo"
+    elif num.startswith("6A") and len(num) == 13:
+        transporteur = "Colissimo"
     elif num.startswith("JJD") and len(num) in [24, 25]:
         transporteur = "DHL"
     elif re.match(r"^X[A-Z0-9]{13}$", num):
         transporteur = "Chronopost"
     elif re.match(r"^\d{14}$", num):
         transporteur = "DPD"
+    elif re.match(r"^\d{17}$", num):
+        transporteur = "Agediss"
     elif re.match(r"^\d{11}$", num):
         transporteur = "GLS"
     elif len(num) in [15, 20] and num.isdigit():
@@ -53,7 +57,7 @@ def track():
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
-                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "",
+                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "Livré" if contient_livraison(r.text) else "",
                 "date_livraison": "",
                 "historique": historique,
                 "lien": gls_url
@@ -109,7 +113,7 @@ def track():
             return jsonify({
                 "transporteur": transporteur,
                 "tracking": num,
-                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "",
+                "statut": statut.text.strip() if hasattr(statut, 'text') else statut if statut else "Livré" if contient_livraison(r.text) else "",
                 "date_livraison": "",
                 "historique": historique,
                 "lien": fedex_url
@@ -128,6 +132,19 @@ def track():
                 "lien": chrono_url
             })
 
+        if transporteur == "Agediss":
+            agediss_url = f"https://www.agediss.com/fr/suivi/{num}"
+            r = requests.get(agediss_url, headers=headers)
+            statut = "Livré" if contient_livraison(r.text) else ""
+            return jsonify({
+                "transporteur": transporteur,
+                "tracking": num,
+                "statut": statut,
+                "date_livraison": "",
+                "historique": [],
+                "lien": agediss_url
+            })
+
     except Exception as e:
         return jsonify({"error": f"Erreur {transporteur}: {str(e)}"}), 500
 
@@ -137,12 +154,15 @@ def track():
         "DPD": f"https://www.dpdgroup.com/be/mydpd/my-parcels/incoming?parcelNumber={num}",
         "GLS": f"https://gls-group.eu/BE/fr/suivi-colis?match={num}",
         "FedEx": f"https://www.fedex.com/fedextrack/?tracknumbers={num}",
-        "Chronopost": f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}"
+        "Chronopost": f"https://www.chronopost.fr/tracking-no-cms/suivi-page?listeNumerosLT={num}",
+        "Agediss": f"https://www.agediss.com/fr/suivi/{num}"
     }.get(transporteur, f"https://www.google.com/search?q=suivi+colis+{num}")
 
     return jsonify({
         "transporteur": transporteur,
         "tracking": num,
+        "statut": "",
+        "date_livraison": "",
         "historique": [],
         "lien": lien_defaut
     })
